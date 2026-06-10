@@ -1,0 +1,228 @@
+import { useEffect, useState } from "react";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import {
+  MessagesSquare,
+  ShieldCheck,
+  UserRound,
+  Star,
+  Timer,
+  ShieldAlert,
+} from "lucide-react";
+import { api, type Metrics } from "../lib/api";
+import { Card, CardHeader, Spinner } from "../components/ui";
+import { PageHeader } from "../components/Layout";
+
+const intentLabels: Record<string, string> = {
+  agendamento: "Agendamento",
+  cancelamento: "Cancelamento",
+  convenio: "Convênio",
+  duvida_geral: "Dúvida geral",
+  escalonamento: "Escalonamento",
+  outros: "Outros",
+};
+
+const intentColors = ["#21998a", "#3fb6a5", "#71d2c2", "#f59e0b", "#fb7185", "#a8a29e"];
+
+function Stat({
+  icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  hint?: string;
+}) {
+  return (
+    <Card className="px-5 py-4">
+      <div className="flex items-center gap-2 text-stone-500">
+        <span className="text-brand-600">{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="mt-2 font-display text-3xl font-semibold text-stone-900">{value}</p>
+      {hint && <p className="mt-0.5 text-xs text-stone-400">{hint}</p>}
+    </Card>
+  );
+}
+
+export function Overview() {
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    api.metrics().then(setMetrics).catch(() => setError(true));
+  }, []);
+
+  if (error)
+    return (
+      <p className="text-sm text-rose-600">
+        Não foi possível carregar as métricas. O servidor está rodando? (npm run dev)
+      </p>
+    );
+  if (!metrics) return <Spinner />;
+
+  const deflection =
+    metrics.deflectionRate != null ? `${Math.round(metrics.deflectionRate * 100)}%` : "—";
+  const csat = metrics.avgCsat != null ? metrics.avgCsat.toFixed(1) : "—";
+  const latency =
+    metrics.avgLatencyMs != null ? `${(metrics.avgLatencyMs / 1000).toFixed(1)}s` : "—";
+
+  const intentData = metrics.byIntent.map((i) => ({
+    name: intentLabels[i.intent] ?? i.intent,
+    count: i.count,
+  }));
+
+  return (
+    <>
+      <PageHeader
+        title="Visão geral"
+        subtitle="Acompanhe o desempenho do agente de IA no atendimento aos pacientes: volume, resolução automática, satisfação e segurança."
+      />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <Stat
+          icon={<MessagesSquare className="size-4" />}
+          label="Conversas"
+          value={String(metrics.totalConversations)}
+          hint={`${metrics.open} em andamento`}
+        />
+        <Stat
+          icon={<ShieldCheck className="size-4" />}
+          label="Resolução IA"
+          value={deflection}
+          hint="sem intervenção humana"
+        />
+        <Stat
+          icon={<UserRound className="size-4" />}
+          label="Escalonadas"
+          value={String(metrics.escalated)}
+          hint="transferidas a humanos"
+        />
+        <Stat icon={<Star className="size-4" />} label="CSAT médio" value={csat} hint="de 1 a 5" />
+        <Stat
+          icon={<Timer className="size-4" />}
+          label="Latência média"
+          value={latency}
+          hint="resposta do agente"
+        />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <Card className="lg:col-span-3">
+          <CardHeader
+            title="Volume de conversas"
+            subtitle="Últimos 14 dias · total vs. escalonadas"
+          />
+          <div className="h-64 px-3 py-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={metrics.byDay} margin={{ top: 4, right: 16, left: -18, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#21998a" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#21998a" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" vertical={false} />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fontSize: 11, fill: "#a8a29e" }}
+                  tickFormatter={(d: string) => d.slice(5)}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis tick={{ fontSize: 11, fill: "#a8a29e" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e7e5e4", fontSize: 12 }}
+                  labelStyle={{ color: "#57534e", fontWeight: 600 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  name="Conversas"
+                  stroke="#21998a"
+                  strokeWidth={2}
+                  fill="url(#gTotal)"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="escalated"
+                  name="Escalonadas"
+                  stroke="#fb7185"
+                  strokeWidth={2}
+                  fill="transparent"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader title="Intenções" subtitle="Sobre o que os pacientes falam" />
+          <div className="h-64 px-3 py-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={intentData} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: "#a8a29e" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={96}
+                  tick={{ fontSize: 11, fill: "#57534e" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: "1px solid #e7e5e4", fontSize: 12 }}
+                  cursor={{ fill: "#f5f5f4" }}
+                />
+                <Bar dataKey="count" name="Conversas" radius={[0, 6, 6, 0]} barSize={18}>
+                  {intentData.map((_, i) => (
+                    <Cell key={i} fill={intentColors[i % intentColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="Guardrails acionados"
+          subtitle="Camadas de segurança que interceptaram mensagens (emergências, injeção de prompt, conselho médico)"
+        />
+        {metrics.guardrails.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-stone-400">
+            Nenhum guardrail acionado até agora — bom sinal. 👌
+          </p>
+        ) : (
+          <ul className="divide-y divide-stone-100">
+            {metrics.guardrails.map((g) => (
+              <li key={g.rule} className="flex items-center justify-between px-5 py-3">
+                <span className="flex items-center gap-2.5 text-sm text-stone-700">
+                  <ShieldAlert className="size-4 text-amber-500" />
+                  {g.rule.replaceAll("_", " ")}
+                </span>
+                <span className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-semibold text-stone-600">
+                  {g.count}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </>
+  );
+}

@@ -1,0 +1,73 @@
+import { useEffect, useState } from "react";
+import { CalendarDays } from "lucide-react";
+import { api, type Appointment } from "../lib/api";
+import { Card, StatusBadge, EmptyState, Spinner } from "../components/ui";
+import { PageHeader } from "../components/Layout";
+
+function formatDateTime(s: string): string {
+  return new Date(s.replace(" ", "T") + "Z").toLocaleString("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function Appointments() {
+  const [rows, setRows] = useState<Appointment[] | null>(null);
+
+  useEffect(() => {
+    api.appointments().then(setRows).catch(() => setRows([]));
+  }, []);
+
+  return (
+    <>
+      <PageHeader
+        title="Agenda"
+        subtitle="Consultas criadas e canceladas pelo agente em tempo real — o mesmo banco que as ferramentas do agente usam."
+      />
+
+      <Card className="overflow-hidden">
+        {rows === null ? (
+          <Spinner />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon={<CalendarDays className="size-10" />}
+            title="Nenhuma consulta agendada"
+            hint="Agende uma consulta pela página “Testar agente” e ela aparecerá aqui."
+          />
+        ) : (
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-stone-100 text-xs uppercase tracking-wide text-stone-400">
+                <th className="px-5 py-3 font-medium">Paciente</th>
+                <th className="px-5 py-3 font-medium">Telefone</th>
+                <th className="px-5 py-3 font-medium">Especialidade</th>
+                <th className="px-5 py-3 font-medium">Profissional</th>
+                <th className="px-5 py-3 font-medium">Data/hora</th>
+                <th className="px-5 py-3 font-medium">Convênio</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {rows.map((a) => (
+                <tr key={a.id} className="transition-colors hover:bg-stone-50/60">
+                  <td className="px-5 py-3 font-medium text-stone-800">{a.patient}</td>
+                  <td className="px-5 py-3 text-stone-500">{a.phone}</td>
+                  <td className="px-5 py-3 text-stone-600">{a.specialty}</td>
+                  <td className="px-5 py-3 text-stone-600">{a.professional}</td>
+                  <td className="px-5 py-3 text-stone-600">{formatDateTime(a.starts_at)}</td>
+                  <td className="px-5 py-3 capitalize text-stone-500">{a.insurance ?? "—"}</td>
+                  <td className="px-5 py-3">
+                    <StatusBadge status={a.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </>
+  );
+}
