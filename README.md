@@ -67,7 +67,7 @@ Em produção, **um único processo** serve a API e o painel (o Express entrega 
 # No servidor, com Docker instalado:
 git clone https://github.com/abnerridigolo/agente-de-ia-clinica.git
 cd agente-de-ia-clinica
-cp .env.example .env            # preencha ANTHROPIC_API_KEY
+cp .env.example .env            # preencha OPENROUTER_API_KEY
 docker compose up -d --build
 ```
 

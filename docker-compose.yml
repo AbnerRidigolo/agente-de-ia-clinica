@@ -6,8 +6,11 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - AGENT_MODEL=${AGENT_MODEL:-claude-opus-4-8}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MODEL=${AGENT_MODEL:-openai/gpt-oss-120b:free}
+      - AGENT_MAX_TOKENS=${AGENT_MAX_TOKENS:-512}
+      - OPENROUTER_SITE_URL=${OPENROUTER_SITE_URL:-http://localhost:3001}
+      - OPENROUTER_APP_NAME=${OPENROUTER_APP_NAME:-Agente Clinica Sofia}
     volumes:
       - ./server/data:/app/server/data
     healthcheck:
