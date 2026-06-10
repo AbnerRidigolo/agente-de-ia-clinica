@@ -40,7 +40,7 @@ export function checkInput(text: string, conversationId: number): GuardrailResul
       allowed: false,
       rule: "tentativa_injecao",
       cannedResponse:
-        "Posso ajudar com agendamentos, cancelamentos, convênios e informações da Clínica Vida+. Como posso ajudar? 😊",
+        "Posso ajudar com agendamentos, cancelamentos e informações da clínica da Dra. Daniela Morais. Como posso ajudar? 😊",
     };
   }
 

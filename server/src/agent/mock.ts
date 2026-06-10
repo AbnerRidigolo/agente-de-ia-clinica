@@ -27,9 +27,14 @@ export function mockReply(conversationId: number, text: string): MockResult {
   }
 
   if (/(agendar|marcar|consulta|hor[áa]rio)/.test(t)) {
-    const spec =
-      t.match(/cardio\w*|dermato\w*|pediatr\w*|gineco\w*|ortoped\w*|cl[ií]nic[oa] geral/)?.[0] ??
-      "clinica geral";
+    let spec = "Avaliação Facial";
+    if (/(harmoniz|completa)/.test(t)) spec = "Harmonização Facial";
+    else if (/(toxina|botox)/.test(t)) spec = "Toxina Botulínica";
+    else if (/preenchi/.test(t)) spec = "Preenchimento";
+    else if (/(bioestimula|colageno)/.test(t)) spec = "Bioestimuladores de Colágeno";
+    else if (/skinbooster/.test(t)) spec = "Skinbooster";
+    else if (/avalia/.test(t)) spec = "Avaliação Facial";
+
     const outcome = executeTool("buscar_horarios", { especialidade: spec }, conversationId);
     const data = JSON.parse(outcome.result) as {
       horarios: { slot_id: number; profissional: string; data_hora: string }[];
@@ -37,7 +42,7 @@ export function mockReply(conversationId: number, text: string): MockResult {
     };
     if (!data.horarios?.length) {
       return {
-        reply: `No momento não encontrei horários para essa especialidade. ${data.aviso ?? ""}`,
+        reply: `No momento não encontrei horários para essa especialidade/procedimento. ${data.aviso ?? ""}`,
         escalated: false,
         toolsUsed: ["buscar_horarios"],
         intent: "agendamento",
@@ -58,7 +63,7 @@ export function mockReply(conversationId: number, text: string): MockResult {
   if (/(cancelar|desmarcar|remarcar|reagendar)/.test(t)) {
     return {
       reply:
-        "Posso ajudar com isso! Me informe o telefone com DDD usado no cadastro para eu localizar sua consulta.",
+        "Posso ajudar com isso! Me informe o telefone com DDD usado no cadastro para eu localizar sua consulta ou avaliação.",
       escalated: false,
       toolsUsed: [],
       intent: "cancelamento",
@@ -66,10 +71,8 @@ export function mockReply(conversationId: number, text: string): MockResult {
   }
 
   if (/(conv[êe]nio|plano de sa[úu]de|unimed|amil|bradesco|sulam[ée]rica|cobertura)/.test(t)) {
-    const outcome = executeTool("consultar_convenios", {}, conversationId);
-    const data = JSON.parse(outcome.result) as { convenios: { nome: string }[] };
     return {
-      reply: `Aceitamos os seguintes convênios: ${data.convenios.map((c) => c.nome).join(", ")}. Quer que eu verifique a cobertura de alguma especialidade?`,
+      reply: "A clínica da Dra. Daniela Morais atende exclusivamente de forma particular. Se quiser, posso ajudar a agendar uma avaliação facial para você! 😊",
       escalated: false,
       toolsUsed: ["consultar_convenios"],
       intent: "convenio",
@@ -84,13 +87,13 @@ export function mockReply(conversationId: number, text: string): MockResult {
     };
     const reply = data.resultados?.length
       ? data.resultados[0].content
-      : "Não encontrei essa informação. Quer falar com um atendente humano?";
+      : "Não encontrei essa informação na base de conhecimento. Quer falar com um atendente humano?";
     return { reply, escalated: false, toolsUsed: ["base_conhecimento"], intent: "duvida_geral" };
   }
 
   return {
     reply:
-      "Olá! Sou a Sofia, assistente virtual da Clínica Vida+. Posso ajudar com agendamentos, cancelamentos, convênios e informações da clínica. Como posso ajudar? 😊",
+      "Olá! Sou a Sofia, assistente virtual da clínica da Dra. Daniela Morais. Posso ajudar com agendamento de avaliações, informações de procedimentos e dúvidas gerais. Como posso ajudar? 😊",
     escalated: false,
     toolsUsed: [],
   };

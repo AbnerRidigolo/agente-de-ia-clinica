@@ -17,7 +17,7 @@ export const toolDefinitions: Anthropic.Tool[] = [
         especialidade: {
           type: "string",
           description:
-            "Especialidade desejada, ex.: clinica geral, cardiologia, dermatologia, pediatria, ginecologia, ortopedia",
+            "Procedimento desejado ou avaliação, ex.: harmonizacao facial, toxina botulinica, preenchimento, bioestimuladores de colageno, skinbooster, avaliacao facial",
         },
       },
       required: ["especialidade"],

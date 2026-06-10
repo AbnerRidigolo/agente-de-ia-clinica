@@ -4,15 +4,13 @@ import { db } from "./db.js";
 export function seedIfEmpty(): void {
   const hasSlots = (db.prepare("SELECT COUNT(*) AS n FROM slots").get() as { n: number }).n > 0;
   if (hasSlots) return;
-
   const specialties: [string, string][] = [
-    ["Clínica Geral", "Dra. Ana Beltrão"],
-    ["Clínica Geral", "Dr. Marcos Tavares"],
-    ["Cardiologia", "Dr. Ricardo Lima"],
-    ["Dermatologia", "Dra. Paula Mendes"],
-    ["Pediatria", "Dra. Júlia Castro"],
-    ["Ginecologia", "Dra. Carla Nunes"],
-    ["Ortopedia", "Dr. Felipe Rocha"],
+    ["Harmonização Facial", "Dra. Daniela Morais"],
+    ["Toxina Botulínica", "Dra. Daniela Morais"],
+    ["Preenchimento", "Dra. Daniela Morais"],
+    ["Bioestimuladores de Colágeno", "Dra. Daniela Morais"],
+    ["Skinbooster", "Dra. Daniela Morais"],
+    ["Avaliação Facial", "Dra. Daniela Morais"],
   ];
 
   const insertSlot = db.prepare("INSERT INTO slots (specialty, professional, starts_at) VALUES (?, ?, ?)");
@@ -35,38 +33,36 @@ export function seedIfEmpty(): void {
 
   db.prepare("INSERT INTO knowledge_base (topic, content) VALUES (?, ?)").run(
     "convenios",
-    JSON.stringify([
-      { nome: "Unimed", especialidades: ["Clínica Geral", "Cardiologia", "Pediatria", "Ginecologia"] },
-      { nome: "Bradesco Saúde", especialidades: ["Clínica Geral", "Dermatologia", "Ortopedia"] },
-      { nome: "SulAmérica", especialidades: ["Clínica Geral", "Cardiologia", "Dermatologia", "Pediatria", "Ginecologia", "Ortopedia"] },
-      { nome: "Amil", especialidades: ["Clínica Geral", "Pediatria"] },
-    ])
+    JSON.stringify([])
   );
 
   const kb: [string, string][] = [
-    ["endereco e como chegar", "A Clínica Vida+ fica na Av. Paulista, 1500, conjunto 801 — Bela Vista, São Paulo/SP. A estação de metrô mais próxima é a Trianon-Masp (Linha 2-Verde), a 200 m."],
-    ["horario de funcionamento", "Funcionamos de segunda a sexta das 7h às 20h e aos sábados das 8h às 14h. Não abrimos aos domingos e feriados."],
-    ["valores consultas particulares", "Valores particulares: Clínica Geral R$ 280; Cardiologia R$ 450; Dermatologia R$ 400; Pediatria R$ 350; Ginecologia R$ 380; Ortopedia R$ 420. Pagamento em até 3x sem juros."],
-    ["formas de pagamento", "Aceitamos PIX, cartões de crédito (até 3x sem juros), débito e dinheiro. Não aceitamos cheques."],
-    ["estacionamento", "Temos convênio com o estacionamento do prédio: R$ 12 para até 3 horas com validação na recepção."],
-    ["preparo exame de sangue", "Exames de sangue: jejum de 8 a 12 horas conforme o exame; água liberada. Traga documento com foto e o pedido médico. Coletas de segunda a sábado, das 7h às 11h."],
-    ["resultados de exames", "Resultados ficam disponíveis no portal do paciente (portal.clinicavidamais.com.br) em até 3 dias úteis, ou podem ser retirados presencialmente com documento com foto."],
-    ["politica de cancelamento", "Cancelamentos ou remarcações devem ser feitos com pelo menos 24h de antecedência. Cancelamentos tardios ou faltas podem gerar cobrança de 30% do valor da consulta particular."],
+    ["endereco e como chegar", "A clínica da Dra. Daniela Morais fica na Av. Paulista, 2000, conjunto 1205 — Bela Vista, São Paulo/SP. Fica próxima ao Metrô Consolação. Estacionamento conveniado no subsolo do próprio edifício comercial, com acesso de segurança e manobrista (R$ 15 por período de até 2 horas para pacientes da clínica)."],
+    ["horario de funcionamento", "Funcionamos de segunda a sexta das 9h às 19h e aos sábados das 9h às 13h. Não abrimos aos domingos e feriados."],
+    ["valores", "A avaliação facial completa com a Dra. Daniela Morais custa R$ 150. Os procedimentos estéticos têm valores a partir de: Toxina Botulínica a partir de R$ 1.200; Preenchimento labial/facial (por ml) a partir de R$ 1.500; Bioestimuladores de colágeno a partir de R$ 1.800; Skinbooster a partir de R$ 800. A harmonização facial completa requer uma avaliação individualizada para orçamento definitivo."],
+    ["formas de pagamento", "Formas de pagamento aceitas: PIX (com 5% de desconto), cartões de crédito em até 6x sem juros, ou entrada de 30% no PIX + saldo em até 4x no cartão."],
+    ["estacionamento", "Estacionamento conveniado disponível no subsolo do próprio edifício comercial, com acesso de segurança e manobrista (R$ 15 por período de até 2 horas para pacientes da clínica)."],
+    ["preparo harmonização", "Evite o consumo de bebidas alcoólicas e o uso de anti-inflamatórios ou aspirina nas 48 horas que antecedem o procedimento. Chegue com 15 minutos de antecedência. Solicitamos vir sem maquiagem pesada no dia para a realização de fotos digitais de mapeamento facial."],
+    ["preparo toxina", "Evite bebidas alcoólicas 24 horas antes do procedimento. Não utilize maquiagem no rosto no dia da aplicação. Comunique qualquer medicação ou alergia ativa."],
+    ["preparo preenchimento", "Evite aspirina, ginkgo biloba ou anti-inflamatórios nas 48 horas anteriores ao procedimento para reduzir o risco de hematomas. Venha sem maquiagem na região a ser tratada."],
+    ["preparo bioestimuladores", "Evite bebidas alcoólicas e anti-inflamatórios nas 48 horas anteriores ao procedimento. Venha com a pele limpa e sem maquiagem."],
+    ["cuidados pós-procedimento", "Não deite ou deite com a cabeça baixa nas primeiras 4 horas após a aplicação de toxina botulínica. Evite massagear ou pressionar as áreas tratadas. Não realize atividade física intensa nas primeiras 24 horas. Evite exposição direta ao sol e utilize protetor solar FPS 50+."],
+    ["politica de cancelamento", "Cancelamentos ou remarcações devem ser comunicados com no mínimo 24h de antecedência. Em caso de não comparecimento sem aviso prévio ou cancelamento tardio, o sinal de agendamento não será reembolsável."],
   ];
   const insertKb = db.prepare("INSERT INTO knowledge_base (topic, content) VALUES (?, ?)");
   for (const [topic, content] of kb) insertKb.run(topic, content);
 
   // Pacientes e histórico de conversas para o painel não nascer vazio
   const insertPatient = db.prepare("INSERT INTO patients (name, phone, insurance) VALUES (?, ?, ?)");
-  insertPatient.run("Maria Oliveira", "11988887777", "Unimed");
+  insertPatient.run("Maria Oliveira", "11988887777", "particular");
   insertPatient.run("João Pereira", "11977776666", "particular");
-  insertPatient.run("Fernanda Costa", "11966665555", "SulAmérica");
+  insertPatient.run("Fernanda Costa", "11966665555", "particular");
 
   db.prepare(
-    "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (1, 'Cardiologia', 'Dr. Ricardo Lima', datetime('now', '+2 days', 'start of day', '+10 hours'))"
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (1, 'Preenchimento', 'Dra. Daniela Morais', datetime('now', '+2 days', 'start of day', '+10 hours'))"
   ).run();
   db.prepare(
-    "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (3, 'Dermatologia', 'Dra. Paula Mendes', datetime('now', '+4 days', 'start of day', '+14 hours'))"
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (3, 'Harmonização Facial', 'Dra. Daniela Morais', datetime('now', '+4 days', 'start of day', '+14 hours'))"
   ).run();
 
   const demoConversations: {
@@ -76,51 +72,51 @@ export function seedIfEmpty(): void {
     {
       contact: "Maria Oliveira", status: "resolvida", intent: "agendamento", csat: 5, daysAgo: 1,
       msgs: [
-        ["user", "Oi, queria marcar um cardiologista"],
-        ["assistant", "Olá, Maria! Encontrei estes horários com o Dr. Ricardo Lima:\n1. Quinta às 10h\n2. Sexta às 14h\nQual prefere?"],
+        ["user", "Oi, queria marcar um preenchimento"],
+        ["assistant", "Olá, Maria! Encontrei estes horários disponíveis para Preenchimento com a Dra. Daniela Morais:\n1. Quinta às 10h\n2. Sexta às 14h\nQual você prefere?"],
         ["user", "Quinta às 10h"],
-        ["assistant", "Perfeito! Consulta confirmada: Cardiologia com Dr. Ricardo Lima, quinta-feira às 10h. Chegue 15 minutos antes com documento e carteirinha. 😊"],
+        ["assistant", "Perfeito! Consulta de Preenchimento confirmada com a Dra. Daniela Morais para quinta-feira às 10h. Chegue 15 minutos antes e, por favor, venha sem maquiagem pesada. 😊"],
       ],
     },
     {
       contact: "João Pereira", status: "resolvida", intent: "convenio", csat: 4, daysAgo: 1,
       msgs: [
-        ["user", "Vocês aceitam Amil?"],
-        ["assistant", "Aceitamos sim! A Amil cobre Clínica Geral e Pediatria aqui na clínica. Quer agendar uma consulta?"],
-        ["user", "Não por enquanto, obrigado"],
-        ["assistant", "Disponha! Qualquer coisa é só chamar. 😊"],
+        ["user", "Vocês aceitam Bradesco Saúde?"],
+        ["assistant", "Olá, João! A clínica da Dra. Daniela Morais atende exclusivamente na modalidade particular. Deseja agendar uma avaliação facial para conhecer nossos procedimentos e valores? 😊"],
+        ["user", "No momento não, obrigado"],
+        ["assistant", "Sem problemas! Qualquer dúvida é só chamar. ✨"],
       ],
     },
     {
       contact: "Fernanda Costa", status: "escalada", intent: "escalonamento", csat: null, daysAgo: 2,
       msgs: [
-        ["user", "Fui cobrada duas vezes pela mesma consulta, quero resolver isso agora"],
-        ["assistant", "Sinto muito pelo transtorno, Fernanda. Questões de cobrança são tratadas pela nossa equipe — estou transferindo você para um atendente humano agora. Tempo médio de espera: 5 minutos."],
+        ["user", "Fui cobrada duas vezes pelo sinal da harmonização, quero ver isso"],
+        ["assistant", "Sinto muito pelo ocorrido, Fernanda. Vou transferir sua conversa agora mesmo para a nossa equipe financeira humana resolver isso para você. O tempo médio de resposta é de 5 minutos."],
       ],
     },
     {
       contact: "11955554444", status: "resolvida", intent: "duvida_geral", csat: 5, daysAgo: 3,
       msgs: [
-        ["user", "Qual o horário de funcionamento de vocês?"],
-        ["assistant", "Funcionamos de segunda a sexta das 7h às 20h e aos sábados das 8h às 14h. Posso ajudar com mais alguma coisa?"],
+        ["user", "Onde fica a clínica de vocês?"],
+        ["assistant", "A clínica da Dra. Daniela Morais fica na Av. Paulista, 2000, conjunto 1205 — Bela Vista, São Paulo/SP, próxima ao Metrô Consolação. Temos estacionamento com manobrista no subsolo. 😊"],
       ],
     },
     {
       contact: "11944443333", status: "resolvida", intent: "cancelamento", csat: 3, daysAgo: 4,
       msgs: [
-        ["user", "Preciso desmarcar minha consulta de amanhã"],
-        ["assistant", "Localizei sua consulta de Clínica Geral amanhã às 9h. Confirma o cancelamento? Atenção: cancelamentos com menos de 24h podem gerar cobrança de 30% conforme nossa política."],
+        ["user", "Preciso cancelar minha avaliação de amanhã"],
+        ["assistant", "Localizei sua Avaliação Facial agendada para amanhã às 9h. Você confirma o cancelamento? Lembrando que desmarcações devem ser feitas com 24h de antecedência. 😊"],
         ["user", "Sim, pode cancelar"],
-        ["assistant", "Consulta cancelada. Quando quiser reagendar, é só me chamar! 😊"],
+        ["assistant", "Avaliação cancelada com sucesso. Quando desejar remarcar, basta me chamar! ✨"],
       ],
     },
     {
       contact: "11933332222", status: "resolvida", intent: "agendamento", csat: 5, daysAgo: 5,
       msgs: [
-        ["user", "Tem pediatra disponível essa semana?"],
-        ["assistant", "Sim! A Dra. Júlia Castro tem horários quarta às 9h e sexta às 16h30. Qual prefere?"],
-        ["user", "Sexta 16h30"],
-        ["assistant", "Consulta confirmada: Pediatria com Dra. Júlia Castro, sexta às 16h30. Até lá! 😊"],
+        ["user", "Queria marcar botox essa semana"],
+        ["assistant", "Olá! A Dra. Daniela Morais tem horários disponíveis para aplicação de Toxina Botulínica:\n1. Quarta às 9h\n2. Sexta às 16h30\nQual deles fica melhor para você?"],
+        ["user", "Sexta às 16h30"],
+        ["assistant", "Agendamento confirmado: Toxina Botulínica com a Dra. Daniela Morais na sexta às 16h30. Por favor, evite bebidas alcoólicas nas 24h anteriores ao procedimento. Até lá! 😊"],
       ],
     },
   ];
