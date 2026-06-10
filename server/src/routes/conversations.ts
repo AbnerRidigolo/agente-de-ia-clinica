@@ -7,12 +7,12 @@ conversationsRouter.get("/", (req, res) => {
   const status = typeof req.query.status === "string" ? req.query.status : null;
   const rows = status
     ? db.prepare(
-        `SELECT id, channel, contact, status, intent, csat, created_at, updated_at,
+        `SELECT id, channel, contact, status, intent, csat, utm_source, utm_campaign, created_at, updated_at,
            (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = conversations.id) AS message_count
          FROM conversations WHERE status = ? ORDER BY updated_at DESC LIMIT 100`
       ).all(status)
     : db.prepare(
-        `SELECT id, channel, contact, status, intent, csat, created_at, updated_at,
+        `SELECT id, channel, contact, status, intent, csat, utm_source, utm_campaign, created_at, updated_at,
            (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = conversations.id) AS message_count
          FROM conversations ORDER BY updated_at DESC LIMIT 100`
       ).all();
@@ -25,11 +25,20 @@ conversationsRouter.get("/:id", (req, res) => {
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
 
   let phone = conversation.contact;
-  if (phone && !/^\d+$/.test(phone)) {
-    const patient = db.prepare("SELECT phone FROM patients WHERE name = ?").get(conversation.contact) as { phone: string } | undefined;
-    if (patient) phone = patient.phone;
+  let patientId: number | null = null;
+  if (phone) {
+    const patient = db.prepare("SELECT id, phone FROM patients WHERE phone = ? OR name = ?").get(phone, phone) as { id: number; phone: string } | undefined;
+    if (patient) {
+      phone = patient.phone;
+      patientId = patient.id;
+    }
   }
   conversation.phone = phone;
+
+  // Busca o histórico de agendamentos do paciente para alimentar a timeline na Ficha do Lead
+  const appointments = patientId
+    ? db.prepare("SELECT id, specialty, starts_at, status FROM appointments WHERE patient_id = ? ORDER BY starts_at DESC").all(patientId)
+    : [];
 
   const messages = db
     .prepare("SELECT id, role, content, tool_name, latency_ms, created_at FROM messages WHERE conversation_id = ? ORDER BY id")
@@ -37,7 +46,7 @@ conversationsRouter.get("/:id", (req, res) => {
   const guardrails = db
     .prepare("SELECT rule, detail, created_at FROM guardrail_events WHERE conversation_id = ? ORDER BY id")
     .all(id);
-  res.json({ conversation, messages, guardrails });
+  res.json({ conversation, messages, guardrails, appointments });
 });
 
 conversationsRouter.post("/:id/resolve", (req, res) => {

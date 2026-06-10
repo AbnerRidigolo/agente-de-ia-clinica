@@ -9,6 +9,12 @@ export interface Metrics {
   byIntent: { intent: string; count: number }[];
   byDay: { day: string; total: number; escalated: number }[];
   guardrails: { rule: string; count: number }[];
+  funnel?: {
+    leads: number;
+    qualified: number;
+    scheduled: number;
+    confirmed: number;
+  };
 }
 
 export interface ConversationSummary {
@@ -19,6 +25,8 @@ export interface ConversationSummary {
   status: "aberta" | "resolvida" | "escalada";
   intent: string | null;
   csat: number | null;
+  utm_source?: string | null;
+  utm_campaign?: string | null;
   created_at: string;
   updated_at: string;
   message_count: number;
@@ -37,6 +45,7 @@ export interface ConversationDetail {
   conversation: ConversationSummary;
   messages: Message[];
   guardrails: { rule: string; detail: string | null; created_at: string }[];
+  appointments?: { id: number; specialty: string; starts_at: string; status: string }[];
 }
 
 export interface Appointment {
@@ -49,6 +58,8 @@ export interface Appointment {
   starts_at: string;
   status: string;
   briefing?: string;
+  utm_source?: string | null;
+  utm_campaign?: string | null;
 }
 
 export interface Settings {

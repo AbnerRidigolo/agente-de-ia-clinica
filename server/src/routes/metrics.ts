@@ -49,6 +49,11 @@ metricsRouter.get("/", (_req, res) => {
     )
     .all();
 
+  const funnelLeads = (db.prepare("SELECT COUNT(*) AS n FROM conversations").get() as { n: number }).n;
+  const funnelQualified = (db.prepare("SELECT COUNT(*) AS n FROM conversations WHERE intent IS NOT NULL AND intent != 'convenio'").get() as { n: number }).n;
+  const funnelScheduled = (db.prepare("SELECT COUNT(*) AS n FROM appointments").get() as { n: number }).n;
+  const funnelConfirmed = (db.prepare("SELECT COUNT(*) AS n FROM appointments WHERE status IN ('confirmada', 'realizada')").get() as { n: number }).n;
+
   const closedCount = totals.resolved + totals.escalated;
   res.json({
     totalConversations: totals.total,
@@ -61,5 +66,11 @@ metricsRouter.get("/", (_req, res) => {
     byIntent,
     byDay,
     guardrails,
+    funnel: {
+      leads: funnelLeads,
+      qualified: funnelQualified,
+      scheduled: funnelScheduled,
+      confirmed: funnelConfirmed,
+    },
   });
 });

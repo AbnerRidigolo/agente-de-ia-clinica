@@ -25,11 +25,33 @@ function formatDate(s: string): string {
   });
 }
 
+const quickRepliesByIntent: Record<string, { label: string; text: string }[]> = {
+  agendamento: [
+    { label: "Confirmar Horário", text: "Olá! Vi que você conversou com a nossa assistente Sofia sobre agendar uma consulta. Vamos escolher o melhor dia e horário para a sua avaliação com a Dra. Daniela?" },
+    { label: "Enviar Horários", text: "Olá! Deseja que eu envie os horários disponíveis desta semana para realizar o seu procedimento estético com a Dra. Daniela?" },
+  ],
+  convenio: [
+    { label: "Opção Particular", text: "Olá! Vi que perguntou sobre convênios. A Dra. Daniela atende apenas particular, mas emitimos recibo para você solicitar reembolso. Vamos agendar uma avaliação?" },
+  ],
+  escalonamento: [
+    { label: "Ajuda Geral (Handoff)", text: "Olá! Sou o atendimento humano da clínica da Dra. Daniela. Vi que a Sofia te transferiu para cá. Como posso te ajudar hoje?" },
+    { label: "Resolver Financeiro", text: "Olá! Sou da equipe de atendimento. Recebi seu chamado sobre a questão de cobrança/financeiro. Pode me enviar o comprovante para eu verificar agora?" },
+  ],
+  duvida_geral: [
+    { label: "Localização e Acesso", text: "Olá! A clínica fica na Av. Paulista, 2000, cj 1205 (próxima ao Metrô Consolação). Temos estacionamento com manobrista. Quer agendar sua avaliação?" },
+  ],
+};
+
+const defaultQuickReplies = [
+  { label: "Contato Geral", text: "Olá! Vi seu interesse em nossos procedimentos estéticos na clínica da Dra. Daniela Morais. Como posso te ajudar hoje?" },
+];
+
 export function Conversations() {
   const [filter, setFilter] = useState("");
   const [list, setList] = useState<ConversationSummary[] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const [detail, setDetail] = useState<ConversationDetail | null>(null);
+  const [customWaText, setCustomWaText] = useState("");
 
   const load = (f: string) => {
     setList(null);
@@ -41,6 +63,7 @@ export function Conversations() {
   useEffect(() => {
     if (selected == null) return setDetail(null);
     setDetail(null);
+    setCustomWaText("");
     api.conversation(selected).then(setDetail).catch(() => setDetail(null));
   }, [selected]);
 
@@ -133,8 +156,11 @@ export function Conversations() {
                   ? `55${cleanPhone}` 
                   : cleanPhone;
 
-                const whatsappText = `Olá! Sou a secretária da Dra. Daniela Morais. Vi que você conversou com a nossa assistente virtual Sofia. Vamos agendar a sua avaliação facial?`;
-                const waLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappText)}`;
+                const defaultWaText = `Olá! Sou a secretária da Dra. Daniela Morais. Vi que você conversou com a nossa assistente virtual Sofia. Vamos agendar a sua avaliação facial?`;
+                const activeWaText = customWaText || defaultWaText;
+                const waLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(activeWaText)}`;
+
+                const replies = quickRepliesByIntent[detail.conversation.intent || ""] || defaultQuickReplies;
 
                 return (
                   <>
@@ -216,7 +242,7 @@ export function Conversations() {
                       </div>
 
                       {/* Ficha Lateral do Lead */}
-                      <div className="w-60 shrink-0 bg-stone-50/50 p-4 flex flex-col justify-between overflow-y-auto">
+                      <div className="w-64 shrink-0 bg-stone-50/50 p-4 flex flex-col justify-between overflow-y-auto">
                         <div className="space-y-4">
                           <div>
                             <h4 className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
@@ -249,11 +275,18 @@ export function Conversations() {
 
                           <div>
                             <h4 className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
-                              Canal de Origem
+                              Origem do Lead (UTM)
                             </h4>
-                            <p className="mt-1 text-xs text-stone-600">
-                              {detail.conversation.channel === "web" ? "💬 Chat do Site (Orgânico)" : "📱 Anúncio do Instagram"}
-                            </p>
+                            <div className="mt-1 flex flex-col gap-1">
+                              <span className="inline-flex w-fit items-center rounded-md bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600 capitalize">
+                                Source: {detail.conversation.utm_source || "Orgânico"}
+                              </span>
+                              {detail.conversation.utm_campaign && (
+                                <span className="inline-flex w-fit items-center rounded-md bg-brand-50 px-2 py-0.5 text-[10px] font-medium text-brand-700 truncate max-w-[210px]">
+                                  Campanha: {detail.conversation.utm_campaign}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div>
@@ -264,10 +297,85 @@ export function Conversations() {
                               <StatusBadge status={detail.conversation.status} />
                             </div>
                           </div>
+
+                          {/* Histórico / Timeline do Paciente */}
+                          <div className="pt-2 border-t border-stone-200">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1.5">
+                              Histórico de Consultas
+                            </h4>
+                            {detail.appointments && detail.appointments.length > 0 ? (
+                              <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                                {detail.appointments.map((appt) => (
+                                  <div key={appt.id} className="rounded border border-stone-200/80 bg-white p-2 text-[10px] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                                    <div className="flex items-center justify-between font-semibold text-stone-700">
+                                      <span className="truncate max-w-[100px]">{appt.specialty}</span>
+                                      <span className={clsx(
+                                        "text-[8px] px-1 rounded-sm uppercase tracking-wider font-bold",
+                                        appt.status === "confirmada" ? "bg-brand-50 text-brand-700" :
+                                        appt.status === "realizada" ? "bg-sky-50 text-sky-700" :
+                                        "bg-stone-100 text-stone-500"
+                                      )}>
+                                        {appt.status}
+                                      </span>
+                                    </div>
+                                    <div className="text-stone-400 mt-0.5 font-mono text-[9px]">
+                                      {new Date(appt.starts_at.replace(" ", "T") + "Z").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-stone-450 italic">Sem consultas registradas.</p>
+                            )}
+                          </div>
+
+                          {/* Respostas Rápidas */}
+                          <div className="pt-2 border-t border-stone-200">
+                            <h4 className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1.5">
+                              Respostas Rápidas
+                            </h4>
+                            <div className="flex flex-col gap-1.5">
+                              {replies.map((reply, i) => (
+                                <button
+                                  key={i}
+                                  onClick={() => {
+                                    setCustomWaText(reply.text);
+                                    navigator.clipboard.writeText(reply.text).catch(() => {});
+                                  }}
+                                  className={clsx(
+                                    "text-left text-[10px] p-2 rounded border transition-all cursor-pointer",
+                                    customWaText === reply.text 
+                                      ? "bg-brand-50 border-brand-300 text-brand-800 font-medium" 
+                                      : "bg-white border-stone-200 text-stone-600 hover:bg-stone-100"
+                                  )}
+                                >
+                                  <span className="block font-semibold text-[8px] text-stone-400 uppercase tracking-wider mb-0.5">
+                                    {reply.label}
+                                  </span>
+                                  <span className="line-clamp-2 leading-relaxed">
+                                    {reply.text}
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                            {customWaText && (
+                              <button
+                                onClick={() => setCustomWaText("")}
+                                className="mt-1.5 text-[9px] text-stone-400 hover:text-stone-600 underline block cursor-pointer"
+                              >
+                                Limpar resposta rápida
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {detail.conversation.phone && (
-                          <div className="pt-4 border-t border-stone-100">
+                          <div className="pt-3 border-t border-stone-200 mt-4">
+                            {customWaText && (
+                              <div className="text-[9px] text-brand-700 bg-brand-50/50 p-1.5 rounded mb-2 border border-brand-100 text-center animate-pulse">
+                                Resposta rápida copiada! Pronto para colar no WhatsApp.
+                              </div>
+                            )}
                             <a
                               href={waLink}
                               target="_blank"

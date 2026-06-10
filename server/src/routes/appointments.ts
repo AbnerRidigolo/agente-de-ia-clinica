@@ -16,9 +16,9 @@ appointmentsRouter.get("/", (_req, res) => {
     // Busca a última conversa do lead (pelo telefone ou nome)
     const conv = db
       .prepare(
-        "SELECT id, intent FROM conversations WHERE contact = ? OR contact = ? ORDER BY id DESC LIMIT 1"
+        "SELECT id, intent, utm_source, utm_campaign FROM conversations WHERE contact = ? OR contact = ? ORDER BY id DESC LIMIT 1"
       )
-      .get(r.phone, r.patient) as { id: number; intent: string | null } | undefined;
+      .get(r.phone, r.patient) as { id: number; intent: string | null; utm_source: string | null; utm_campaign: string | null } | undefined;
 
     let briefing = `Consulta de ${r.specialty}. Sem observações extraídas do chat.`;
 
@@ -80,6 +80,8 @@ appointmentsRouter.get("/", (_req, res) => {
     return {
       ...r,
       briefing,
+      utm_source: conv?.utm_source || null,
+      utm_campaign: conv?.utm_campaign || null,
     };
   });
 

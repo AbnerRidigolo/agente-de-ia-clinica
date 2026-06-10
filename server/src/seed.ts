@@ -58,19 +58,36 @@ export function seedIfEmpty(): void {
   insertPatient.run("João Pereira", "11977776666", "particular");
   insertPatient.run("Fernanda Costa", "11966665555", "particular");
 
+  // Consultas futuras (agenda)
   db.prepare(
-    "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (1, 'Preenchimento', 'Dra. Daniela Morais', datetime('now', '+2 days', 'start of day', '+10 hours'))"
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at, status) VALUES (1, 'Preenchimento', 'Dra. Daniela Morais', datetime('now', '+2 days', 'start of day', '+10 hours'), 'confirmada')"
   ).run();
   db.prepare(
-    "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (3, 'Harmonização Facial', 'Dra. Daniela Morais', datetime('now', '+4 days', 'start of day', '+14 hours'))"
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at, status) VALUES (3, 'Harmonização Facial', 'Dra. Daniela Morais', datetime('now', '+4 days', 'start of day', '+14 hours'), 'confirmada')"
+  ).run();
+
+  // Consultas passadas e canceladas para histórico do paciente (Timeline)
+  db.prepare(
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at, status) VALUES (1, 'Toxina Botulínica', 'Dra. Daniela Morais', datetime('now', '-30 days'), 'realizada')"
+  ).run();
+  db.prepare(
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at, status) VALUES (1, 'Avaliação Facial', 'Dra. Daniela Morais', datetime('now', '-45 days'), 'realizada')"
+  ).run();
+  db.prepare(
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at, status) VALUES (3, 'Avaliação Facial', 'Dra. Daniela Morais', datetime('now', '-15 days'), 'realizada')"
+  ).run();
+  db.prepare(
+    "INSERT INTO appointments (patient_id, specialty, professional, starts_at, status) VALUES (3, 'Skinbooster', 'Dra. Daniela Morais', datetime('now', '-5 days'), 'cancelada')"
   ).run();
 
   const demoConversations: {
     contact: string; status: string; intent: string; csat: number | null; daysAgo: number;
+    utm_source: string | null; utm_campaign: string | null;
     msgs: [string, string][];
   }[] = [
     {
       contact: "Maria Oliveira", status: "resolvida", intent: "agendamento", csat: 5, daysAgo: 1,
+      utm_source: "instagram", utm_campaign: "ads_preenchimento",
       msgs: [
         ["user", "Oi, queria marcar um preenchimento"],
         ["assistant", "Olá, Maria! Encontrei estes horários disponíveis para Preenchimento com a Dra. Daniela Morais:\n1. Quinta às 10h\n2. Sexta às 14h\nQual você prefere?"],
@@ -80,6 +97,7 @@ export function seedIfEmpty(): void {
     },
     {
       contact: "João Pereira", status: "resolvida", intent: "convenio", csat: 4, daysAgo: 1,
+      utm_source: "google", utm_campaign: "pesquisa_clinica",
       msgs: [
         ["user", "Vocês aceitam Bradesco Saúde?"],
         ["assistant", "Olá, João! A clínica da Dra. Daniela Morais atende exclusivamente na modalidade particular. Deseja agendar uma avaliação facial para conhecer nossos procedimentos e valores? 😊"],
@@ -89,6 +107,7 @@ export function seedIfEmpty(): void {
     },
     {
       contact: "Fernanda Costa", status: "escalada", intent: "escalonamento", csat: null, daysAgo: 2,
+      utm_source: "facebook", utm_campaign: "harmonizacao_campanha",
       msgs: [
         ["user", "Fui cobrada duas vezes pelo sinal da harmonização, quero ver isso"],
         ["assistant", "Sinto muito pelo ocorrido, Fernanda. Vou transferir sua conversa agora mesmo para a nossa equipe financeira humana resolver isso para você. O tempo médio de resposta é de 5 minutos."],
@@ -96,6 +115,7 @@ export function seedIfEmpty(): void {
     },
     {
       contact: "11955554444", status: "resolvida", intent: "duvida_geral", csat: 5, daysAgo: 3,
+      utm_source: "instagram", utm_campaign: "botox_verao",
       msgs: [
         ["user", "Onde fica a clínica de vocês?"],
         ["assistant", "A clínica da Dra. Daniela Morais fica na Av. Paulista, 2000, conjunto 1205 — Bela Vista, São Paulo/SP, próxima ao Metrô Consolação. Temos estacionamento com manobrista no subsolo. 😊"],
@@ -103,6 +123,7 @@ export function seedIfEmpty(): void {
     },
     {
       contact: "11944443333", status: "resolvida", intent: "cancelamento", csat: 3, daysAgo: 4,
+      utm_source: "google", utm_campaign: "pesquisa_botox",
       msgs: [
         ["user", "Preciso cancelar minha avaliação de amanhã"],
         ["assistant", "Localizei sua Avaliação Facial agendada para amanhã às 9h. Você confirma o cancelamento? Lembrando que desmarcações devem ser feitas com 24h de antecedência. 😊"],
@@ -112,6 +133,7 @@ export function seedIfEmpty(): void {
     },
     {
       contact: "11933332222", status: "resolvida", intent: "agendamento", csat: 5, daysAgo: 5,
+      utm_source: "instagram", utm_campaign: "botox_verao",
       msgs: [
         ["user", "Queria marcar botox essa semana"],
         ["assistant", "Olá! A Dra. Daniela Morais tem horários disponíveis para aplicação de Toxina Botulínica:\n1. Quarta às 9h\n2. Sexta às 16h30\nQual deles fica melhor para você?"],
@@ -122,14 +144,14 @@ export function seedIfEmpty(): void {
   ];
 
   const insertConv = db.prepare(
-    "INSERT INTO conversations (channel, contact, status, intent, csat, created_at, updated_at) VALUES ('web', ?, ?, ?, ?, datetime('now', ?), datetime('now', ?))"
+    "INSERT INTO conversations (channel, contact, status, intent, csat, utm_source, utm_campaign, created_at, updated_at) VALUES ('web', ?, ?, ?, ?, ?, ?, datetime('now', ?), datetime('now', ?))"
   );
   const insertMsg = db.prepare(
     "INSERT INTO messages (conversation_id, role, content, latency_ms, created_at) VALUES (?, ?, ?, ?, datetime('now', ?))"
   );
   let convId = 0;
   for (const c of demoConversations) {
-    insertConv.run(c.contact, c.status, c.intent, c.csat, `-${c.daysAgo} days`, `-${c.daysAgo} days`);
+    insertConv.run(c.contact, c.status, c.intent, c.csat, c.utm_source, c.utm_campaign, `-${c.daysAgo} days`, `-${c.daysAgo} days`);
     convId = (db.prepare("SELECT last_insert_rowid() AS id").get() as { id: number }).id;
     for (const [role, content] of c.msgs) {
       insertMsg.run(convId, role, content, role === "assistant" ? 1200 + Math.floor(Math.random() * 1800) : null, `-${c.daysAgo} days`);

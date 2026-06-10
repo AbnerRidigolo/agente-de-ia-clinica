@@ -54,7 +54,21 @@ export function Appointments() {
                 <tr key={a.id} className="transition-colors hover:bg-stone-50/60">
                   <td className="px-5 py-3 font-medium text-stone-800">{a.patient}</td>
                   <td className="px-5 py-3 text-stone-500">{a.phone}</td>
-                  <td className="px-5 py-3 text-stone-600">{a.specialty}</td>
+                  <td className="px-5 py-3 text-stone-600">
+                    <span className="font-semibold text-stone-850">{a.specialty}</span>
+                    {(a.utm_source || a.utm_campaign) && (
+                      <div className="mt-1 flex flex-wrap gap-1 text-[10px]">
+                        <span className="inline-flex items-center rounded bg-stone-100 px-1.5 py-0.5 text-stone-500 font-mono capitalize">
+                          {a.utm_source}
+                        </span>
+                        {a.utm_campaign && (
+                          <span className="inline-flex items-center rounded bg-brand-50 px-1.5 py-0.5 text-brand-700 font-medium truncate max-w-[150px]">
+                            {a.utm_campaign}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-stone-600">{formatDateTime(a.starts_at)}</td>
                   <td className="px-5 py-3 text-stone-600 max-w-xs md:max-w-md">
                     <div className="rounded-lg bg-stone-50/70 p-2.5 border-l-2 border-brand-500 text-xs shadow-xs">

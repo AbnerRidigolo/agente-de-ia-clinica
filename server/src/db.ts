@@ -49,6 +49,8 @@ db.exec(`
     status TEXT NOT NULL DEFAULT 'aberta', -- aberta | resolvida | escalada
     intent TEXT,
     csat INTEGER,
+    utm_source TEXT,
+    utm_campaign TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
