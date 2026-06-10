@@ -48,6 +48,7 @@ export interface Appointment {
   professional: string;
   starts_at: string;
   status: string;
+  briefing?: string;
 }
 
 export interface Settings {
