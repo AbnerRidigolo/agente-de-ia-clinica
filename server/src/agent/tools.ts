@@ -1,17 +1,18 @@
-import type Anthropic from "@anthropic-ai/sdk";
+import type { ChatCompletionTool } from "openai/resources/chat/completions";
 import { db } from "../db.js";
 
 /**
  * Ferramentas do agente (tool use). Cada tool tem descrição prescritiva de
- * QUANDO ser chamada — isso aumenta a taxa de acerto do modelo na decisão
- * de uso (ver guia de tool use da Anthropic).
+ * QUANDO ser chamada — isso aumenta a taxa de acerto do modelo na decisão de uso.
  */
-export const toolDefinitions: Anthropic.Tool[] = [
+export const toolDefinitions: ChatCompletionTool[] = [
   {
-    name: "buscar_horarios",
-    description:
-      "Busca horários de consulta disponíveis. Chame SEMPRE que o paciente quiser agendar ou reagendar, antes de oferecer qualquer horário. Nunca invente horários.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "buscar_horarios",
+      description:
+        "Busca horários de consulta disponíveis. Chame SEMPRE que o paciente quiser agendar ou reagendar, antes de oferecer qualquer horário. Nunca invente horários.",
+      parameters: {
       type: "object",
       properties: {
         especialidade: {
@@ -20,26 +21,32 @@ export const toolDefinitions: Anthropic.Tool[] = [
             "Especialidade desejada, ex.: clinica geral, cardiologia, dermatologia, pediatria, ginecologia, ortopedia",
         },
       },
-      required: ["especialidade"],
+        required: ["especialidade"],
+      },
     },
   },
   {
-    name: "buscar_paciente",
-    description:
-      "Localiza o cadastro do paciente e suas consultas futuras pelo telefone. Chame antes de cancelar/reagendar e para verificar se o paciente já tem cadastro.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "buscar_paciente",
+      description:
+        "Localiza o cadastro do paciente e suas consultas futuras pelo telefone. Chame antes de cancelar/reagendar e para verificar se o paciente já tem cadastro.",
+      parameters: {
       type: "object",
       properties: {
         telefone: { type: "string", description: "Telefone com DDD, apenas números" },
       },
-      required: ["telefone"],
+        required: ["telefone"],
+      },
     },
   },
   {
-    name: "agendar_consulta",
-    description:
-      "Efetiva o agendamento de uma consulta em um horário retornado por buscar_horarios. Chame SOMENTE após o paciente confirmar explicitamente o horário e informar nome completo e telefone.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "agendar_consulta",
+      description:
+        "Efetiva o agendamento de uma consulta em um horário retornado por buscar_horarios. Chame SOMENTE após o paciente confirmar explicitamente o horário e informar nome completo e telefone.",
+      parameters: {
       type: "object",
       properties: {
         slot_id: { type: "integer", description: "ID do horário escolhido (vindo de buscar_horarios)" },
@@ -47,26 +54,32 @@ export const toolDefinitions: Anthropic.Tool[] = [
         telefone: { type: "string", description: "Telefone com DDD, apenas números" },
         convenio: { type: "string", description: "Nome do convênio, ou 'particular'" },
       },
-      required: ["slot_id", "nome", "telefone"],
+        required: ["slot_id", "nome", "telefone"],
+      },
     },
   },
   {
-    name: "cancelar_consulta",
-    description:
-      "Cancela uma consulta existente. Chame SOMENTE após confirmar com o paciente qual consulta (retornada por buscar_paciente) será cancelada.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "cancelar_consulta",
+      description:
+        "Cancela uma consulta existente. Chame SOMENTE após confirmar com o paciente qual consulta (retornada por buscar_paciente) será cancelada.",
+      parameters: {
       type: "object",
       properties: {
         consulta_id: { type: "integer", description: "ID da consulta (vindo de buscar_paciente)" },
       },
-      required: ["consulta_id"],
+        required: ["consulta_id"],
+      },
     },
   },
   {
-    name: "consultar_convenios",
-    description:
-      "Lista os convênios aceitos pela clínica e as especialidades cobertas. Chame quando o paciente perguntar sobre plano de saúde, cobertura ou convênio.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "consultar_convenios",
+      description:
+        "Lista os convênios aceitos pela clínica e as especialidades cobertas. Chame quando o paciente perguntar sobre plano de saúde, cobertura ou convênio.",
+      parameters: {
       type: "object",
       properties: {
         convenio: {
@@ -74,31 +87,38 @@ export const toolDefinitions: Anthropic.Tool[] = [
           description: "Nome do convênio a verificar (opcional; vazio lista todos)",
         },
       },
-      required: [],
+        required: [],
+      },
     },
   },
   {
-    name: "base_conhecimento",
-    description:
-      "Consulta a base de conhecimento da clínica (endereço, horários de funcionamento, valores particulares, preparo de exames, estacionamento, formas de pagamento). Chame antes de responder qualquer pergunta institucional — nunca responda de memória.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "base_conhecimento",
+      description:
+        "Consulta a base de conhecimento da clínica (endereço, horários de funcionamento, valores particulares, preparo de exames, estacionamento, formas de pagamento). Chame antes de responder qualquer pergunta institucional — nunca responda de memória.",
+      parameters: {
       type: "object",
       properties: {
         topico: { type: "string", description: "Tópico ou palavras-chave da dúvida" },
       },
-      required: ["topico"],
+        required: ["topico"],
+      },
     },
   },
   {
-    name: "escalar_para_humano",
-    description:
-      "Transfere a conversa para um atendente humano. Chame nas situações do AOP-04: urgência médica, pedido explícito do paciente, reclamação/reembolso, suspeita de erro, ou quando você não conseguir resolver após 2 tentativas.",
-    input_schema: {
+    type: "function",
+    function: {
+      name: "escalar_para_humano",
+      description:
+        "Transfere a conversa para um atendente humano. Chame nas situações do AOP-04: urgência médica, pedido explícito do paciente, reclamação/reembolso, suspeita de erro, ou quando você não conseguir resolver após 2 tentativas.",
+      parameters: {
       type: "object",
       properties: {
         motivo: { type: "string", description: "Motivo resumido do escalonamento" },
       },
-      required: ["motivo"],
+        required: ["motivo"],
+      },
     },
   },
 ];

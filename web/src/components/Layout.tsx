@@ -77,13 +77,13 @@ export function Layout() {
           ) : mockMode ? (
             <p className="mt-1.5 text-[11px] leading-relaxed text-amber-300/90">
               Modo demonstração ativo. Defina{" "}
-              <code className="rounded bg-black/30 px-1">ANTHROPIC_API_KEY</code> para
+              <code className="rounded bg-black/30 px-1">OPENROUTER_API_KEY</code> para
               ligar o agente completo.
             </p>
           ) : (
             <p className="mt-1.5 text-[11px] leading-relaxed text-brand-300/90">
               <span className="mr-1 inline-block size-1.5 rounded-full bg-emerald-400 align-middle" />
-              Agente em produção, operando com Claude.
+              Agente em produção via OpenRouter.
             </p>
           )}
         </div>

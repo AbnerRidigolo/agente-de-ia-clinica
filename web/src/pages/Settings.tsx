@@ -55,7 +55,7 @@ export function Settings() {
         {data.mockMode && (
           <span className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
             <FlaskConical className="size-4" />
-            Modo demonstração — defina <code className="rounded bg-amber-100 px-1.5 py-0.5 text-xs">ANTHROPIC_API_KEY</code> no servidor
+            Modo demonstração — defina <code className="rounded bg-amber-100 px-1.5 py-0.5 text-xs">OPENROUTER_API_KEY</code> no servidor
           </span>
         )}
       </div>

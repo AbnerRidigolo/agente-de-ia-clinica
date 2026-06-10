@@ -28,7 +28,7 @@ app.listen(config.port, () => {
   console.log(`[server] http://localhost:${config.port}`);
   if (config.mockMode) {
     console.log(
-      "[server] ANTHROPIC_API_KEY ausente — rodando em MODO DEMO (agente simulado). Configure a chave no .env para ativar o agente completo."
+      "[server] OPENROUTER_API_KEY ausente — rodando em MODO DEMO (agente simulado). Configure a chave no .env para ativar o agente completo."
     );
   } else {
     console.log(`[server] Agente ativo com modelo ${config.model}.`);

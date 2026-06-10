@@ -8,7 +8,7 @@ export interface MockResult {
 }
 
 /**
- * Agente simulado para modo demo (sem ANTHROPIC_API_KEY).
+ * Agente simulado para modo demo (sem OPENROUTER_API_KEY).
  * Roteia por intenção com regras simples e usa as MESMAS ferramentas do
  * agente real, para que o painel e os fluxos funcionem de ponta a ponta.
  */
@@ -48,7 +48,7 @@ export function mockReply(conversationId: number, text: string): MockResult {
       .map((h, i) => `${i + 1}. ${h.data_hora} — ${h.profissional}`)
       .join("\n");
     return {
-      reply: `Encontrei estes horários disponíveis:\n${lista}\n\nQual prefere? Para confirmar, me informe também seu nome completo e telefone com DDD. (modo demonstração — configure ANTHROPIC_API_KEY para o agente completo)`,
+      reply: `Encontrei estes horários disponíveis:\n${lista}\n\nQual prefere? Para confirmar, me informe também seu nome completo e telefone com DDD. (modo demonstração — configure OPENROUTER_API_KEY para o agente completo)`,
       escalated: false,
       toolsUsed: ["buscar_horarios"],
       intent: "agendamento",

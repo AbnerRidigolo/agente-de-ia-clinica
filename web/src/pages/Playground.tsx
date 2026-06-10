@@ -54,10 +54,11 @@ export function Playground() {
           escalated: res.escalated,
         },
       ]);
-    } catch {
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "Erro ao falar com o servidor.";
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Erro ao falar com o servidor. Ele está rodando?" },
+        { role: "assistant", content: detail },
       ]);
     } finally {
       setBusy(false);
