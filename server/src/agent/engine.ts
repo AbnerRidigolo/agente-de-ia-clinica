@@ -1,12 +1,23 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { config } from "../config.js";
 import { db } from "../db.js";
 import { buildSystemPrompt } from "./prompt.js";
 import { toolDefinitions, executeTool } from "./tools.js";
 import { checkInput, checkOutput, maskPII } from "./guardrails.js";
 import { mockReply } from "./mock.js";
+import { runPreflightContext } from "./context.js";
 
-const client = config.mockMode ? null : new Anthropic({ apiKey: config.anthropicApiKey });
+const client = config.mockMode
+  ? null
+  : new OpenAI({
+      apiKey: config.openrouterApiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": config.openrouterSiteUrl,
+        "X-Title": config.openrouterAppName,
+      },
+    });
 
 const MAX_TOOL_ITERATIONS = 8;
 
@@ -30,13 +41,16 @@ export function createConversation(channel = "web", contact: string | null = nul
   return row.id;
 }
 
-function loadHistory(conversationId: number): Anthropic.MessageParam[] {
+function loadHistory(conversationId: number): ChatCompletionMessageParam[] {
   const rows = db
     .prepare(
       "SELECT role, content FROM messages WHERE conversation_id = ? AND role IN ('user','assistant') ORDER BY id"
     )
     .all(conversationId) as unknown as MessageRow[];
-  return rows.map((r) => ({ role: r.role as "user" | "assistant", content: r.content }));
+  return rows.map((r) => ({
+    role: r.role as "user" | "assistant",
+    content: r.content,
+  }));
 }
 
 function saveMessage(
@@ -99,57 +113,66 @@ export async function handleUserMessage(
     };
   }
 
-  const messages: Anthropic.MessageParam[] = loadHistory(conversationId);
+  const messages: ChatCompletionMessageParam[] = [
+    { role: "system", content: buildSystemPrompt() },
+    ...loadHistory(conversationId),
+  ];
   const toolsUsed: string[] = [];
   let escalated = false;
   let finalText = "";
 
+  const preflight = runPreflightContext(conversationId, userText);
+  if (preflight) {
+    messages.push({
+      role: "system",
+      content: `[Contexto automático — não repetir ao paciente]\n${preflight.systemNote}`,
+    });
+    for (const exec of preflight.toolExecutions) {
+      toolsUsed.push(exec.name);
+      if (exec.intent) setIntent(conversationId, exec.intent);
+      saveMessage(conversationId, "tool", exec.result, exec.name);
+    }
+  }
+
   for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-    const response = await client!.messages.create({
+    const response = await client!.chat.completions.create({
       model: config.model,
-      max_tokens: 2048,
-      thinking: { type: "adaptive" },
-      system: [
-        {
-          type: "text",
-          text: buildSystemPrompt(),
-          cache_control: { type: "ephemeral" },
-        },
-      ],
+      max_tokens: config.maxTokens,
       tools: toolDefinitions,
       messages,
     });
 
-    if (response.stop_reason === "tool_use") {
-      messages.push({ role: "assistant", content: response.content });
+    const choice = response.choices[0]?.message;
+    if (!choice) break;
 
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
-      for (const block of response.content) {
-        if (block.type !== "tool_use") continue;
-        toolsUsed.push(block.name);
-        const outcome = executeTool(
-          block.name,
-          block.input as Record<string, unknown>,
-          conversationId
-        );
+    if (choice.tool_calls?.length) {
+      messages.push(choice);
+
+      for (const toolCall of choice.tool_calls) {
+        if (toolCall.type !== "function") continue;
+        const name = toolCall.function.name;
+        let input: Record<string, unknown> = {};
+        try {
+          input = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
+        } catch {
+          input = {};
+        }
+
+        toolsUsed.push(name);
+        const outcome = executeTool(name, input, conversationId);
         if (outcome.escalated) escalated = true;
         if (outcome.intent) setIntent(conversationId, outcome.intent);
-        saveMessage(conversationId, "tool", outcome.result, block.name);
-        toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
+        saveMessage(conversationId, "tool", outcome.result, name);
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
           content: outcome.result,
         });
       }
-      messages.push({ role: "user", content: toolResults });
       continue;
     }
 
-    finalText = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("\n")
-      .trim();
+    finalText = (choice.content ?? "").trim();
     break;
   }
 

@@ -24,7 +24,23 @@ chatRouter.post("/", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error("[chat] erro:", err);
-    res.status(500).json({ error: "Falha ao processar a mensagem" });
+    const status = typeof err === "object" && err !== null && "status" in err ? Number(err.status) : 500;
+    const apiMessage =
+      typeof err === "object" && err !== null && "error" in err
+        ? (err as { error?: { message?: string } }).error?.message
+        : undefined;
+    let message = "Falha ao processar a mensagem. Tente novamente.";
+    if (status === 402) {
+      message =
+        "Créditos insuficientes no OpenRouter. Adicione saldo em openrouter.ai/settings/credits ou use um modelo mais barato no .env.";
+    } else if (status === 401) {
+      message = "Chave da API OpenRouter inválida. Verifique OPENROUTER_API_KEY no .env.";
+    } else if (status === 429) {
+      message = "Limite de requisições atingido. Aguarde alguns segundos e tente de novo.";
+    } else if (apiMessage) {
+      message = apiMessage;
+    }
+    res.status(status >= 400 && status < 600 ? status : 500).json({ error: message });
   }
 });
 

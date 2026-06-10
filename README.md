@@ -9,7 +9,7 @@ A **Sofia** atende pacientes da clínica em chat: agenda, reagenda e cancela con
 ```
 ┌─────────────────────────────┐      ┌──────────────────────────────┐
 │  web/ — Painel (React)      │      │  server/ — API + Agente       │
-│  Vite · Tailwind · Recharts │ ───▶ │  Express · Anthropic SDK      │
+│  Vite · Tailwind · Recharts │ ───▶ │  Express · OpenRouter (OpenAI) │
 │                             │      │                               │
 │  · Visão geral (métricas)   │      │  Pipeline por mensagem:       │
 │  · Conversas (auditoria)    │      │  1. Guardrails de entrada     │
@@ -33,8 +33,8 @@ A **Sofia** atende pacientes da clínica em chat: agenda, reagenda e cancela con
 
 ### Engenharia de IA
 
-- Modelo **`claude-opus-4-8`** com **adaptive thinking** (`thinking: {type: "adaptive"}`)
-- **Prompt caching** no system prompt (persona + AOPs estáveis dentro da conversa)
+- Modelo configurável via **OpenRouter** (padrão: `anthropic/claude-sonnet-4`)
+- System prompt com persona + AOPs injetados a cada requisição
 - Loop agêntico manual com limite de iterações e fallback de escalonamento
 - Descrições de ferramentas prescritivas (*quando* chamar, não só o quê)
 - Banco **SQLite nativo do Node** (`node:sqlite`) — zero dependências nativas
@@ -50,8 +50,8 @@ npm install
 npm run dev
 
 # Modo produção do agente
-cp .env.example .env       # adicione sua ANTHROPIC_API_KEY
-ANTHROPIC_API_KEY=sk-... npm run dev
+cp .env.example .env       # adicione sua OPENROUTER_API_KEY
+OPENROUTER_API_KEY=sk-or-... npm run dev
 ```
 
 - Painel: **http://localhost:5173**
