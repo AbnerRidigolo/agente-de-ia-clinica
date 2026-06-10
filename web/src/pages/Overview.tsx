@@ -10,6 +10,9 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from "recharts";
 import {
   MessagesSquare,
@@ -174,6 +177,104 @@ export function Overview() {
           </div>
         </Card>
       )}
+
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Origem dos Leads Donut Chart */}
+        <Card className="lg:col-span-2">
+          <CardHeader title="Origem dos Leads (Canais)" subtitle="Distribuição por canal de captação" />
+          <div className="h-64 px-3 py-4 flex items-center justify-center">
+            {metrics.bySource && metrics.bySource.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={metrics.bySource}
+                    dataKey="count"
+                    nameKey="source"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={75}
+                    paddingAngle={3}
+                  >
+                    {metrics.bySource.map((entry, index) => (
+                      <Cell 
+                        key={index} 
+                        fill={
+                          entry.source.toLowerCase() === "instagram" ? "#ec4899" :
+                          entry.source.toLowerCase() === "google" ? "#3b82f6" :
+                          entry.source.toLowerCase() === "facebook" ? "#1877f2" :
+                          "#78716c" // Organic / stone
+                        } 
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "1px solid #e7e5e4", fontSize: 11 }}
+                    formatter={(val, name) => [val, String(name).toUpperCase()]}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    iconType="circle"
+                    iconSize={8}
+                    formatter={(val) => <span className="text-stone-500 font-medium text-[11px] uppercase tracking-wide">{val}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-xs text-stone-400 italic">Sem dados de origem.</p>
+            )}
+          </div>
+        </Card>
+
+        {/* Tabela de ROI por Canal */}
+        <Card className="lg:col-span-3">
+          <CardHeader title="ROI e Eficiência por Canal" subtitle="Resumo de leads, agendamentos e taxa de fechamento" />
+          <div className="overflow-x-auto px-4 py-3">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-stone-150 text-[10px] uppercase tracking-wider text-stone-400 font-semibold">
+                  <th className="py-2.5 font-medium">Canal</th>
+                  <th className="py-2.5 font-medium text-center">Leads</th>
+                  <th className="py-2.5 font-medium text-center">Agendados</th>
+                  <th className="py-2.5 font-medium text-center">Confirmados</th>
+                  <th className="py-2.5 font-medium text-right">Taxa Conv.</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100 font-medium text-stone-700">
+                {metrics.conversionBySource && metrics.conversionBySource.length > 0 ? (
+                  metrics.conversionBySource.map((row) => {
+                    const convRate = row.leads > 0 
+                      ? `${Math.round((row.confirmed / row.leads) * 100)}%`
+                      : "0%";
+                    return (
+                      <tr key={row.source} className="hover:bg-stone-50/50">
+                        <td className="py-3 font-semibold text-stone-855 capitalize flex items-center gap-1.5">
+                          <span className={"w-2 h-2 rounded-full " + (
+                            row.source.toLowerCase() === "instagram" ? "bg-pink-500" :
+                            row.source.toLowerCase() === "google" ? "bg-blue-500" :
+                            row.source.toLowerCase() === "facebook" ? "bg-indigo-650" : // standard tailwind Indigo
+                            "bg-stone-400"
+                          )} />
+                          {row.source}
+                        </td>
+                        <td className="py-3 text-center text-stone-500">{row.leads}</td>
+                        <td className="py-3 text-center text-stone-500">{row.appointments}</td>
+                        <td className="py-3 text-center text-emerald-600 font-bold">{row.confirmed}</td>
+                        <td className="py-3 text-right text-brand-700 font-bold">{convRate}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-4 text-center text-stone-400 italic">Sem registros.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5">
         <Card className="lg:col-span-3">

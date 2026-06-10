@@ -54,6 +54,27 @@ metricsRouter.get("/", (_req, res) => {
   const funnelScheduled = (db.prepare("SELECT COUNT(*) AS n FROM appointments").get() as { n: number }).n;
   const funnelConfirmed = (db.prepare("SELECT COUNT(*) AS n FROM appointments WHERE status IN ('confirmada', 'realizada')").get() as { n: number }).n;
 
+  const bySource = db
+    .prepare(
+      `SELECT COALESCE(utm_source, 'orgânico') AS source, COUNT(*) AS count
+       FROM conversations GROUP BY COALESCE(utm_source, 'orgânico') ORDER BY count DESC`
+    )
+    .all();
+
+  const conversionBySource = db
+    .prepare(
+      `SELECT COALESCE(c.utm_source, 'orgânico') AS source,
+         COUNT(DISTINCT c.id) AS leads,
+         COUNT(DISTINCT a.id) AS appointments,
+         SUM(CASE WHEN a.status IN ('confirmada', 'realizada') THEN 1 ELSE 0 END) AS confirmed
+       FROM conversations c
+       LEFT JOIN patients p ON p.phone = c.contact OR p.name = c.contact
+       LEFT JOIN appointments a ON a.patient_id = p.id
+       GROUP BY COALESCE(c.utm_source, 'orgânico')
+       ORDER BY leads DESC`
+    )
+    .all();
+
   const closedCount = totals.resolved + totals.escalated;
   res.json({
     totalConversations: totals.total,
@@ -72,5 +93,7 @@ metricsRouter.get("/", (_req, res) => {
       scheduled: funnelScheduled,
       confirmed: funnelConfirmed,
     },
+    bySource,
+    conversionBySource,
   });
 });

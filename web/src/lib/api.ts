@@ -15,6 +15,13 @@ export interface Metrics {
     scheduled: number;
     confirmed: number;
   };
+  bySource?: { source: string; count: number }[];
+  conversionBySource?: {
+    source: string;
+    leads: number;
+    appointments: number;
+    confirmed: number;
+  }[];
 }
 
 export interface ConversationSummary {
