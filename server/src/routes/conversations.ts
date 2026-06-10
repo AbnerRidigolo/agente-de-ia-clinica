@@ -21,8 +21,16 @@ conversationsRouter.get("/", (req, res) => {
 
 conversationsRouter.get("/:id", (req, res) => {
   const id = Number(req.params.id);
-  const conversation = db.prepare("SELECT * FROM conversations WHERE id = ?").get(id);
+  const conversation = db.prepare("SELECT * FROM conversations WHERE id = ?").get(id) as any;
   if (!conversation) return res.status(404).json({ error: "Conversa não encontrada" });
+
+  let phone = conversation.contact;
+  if (phone && !/^\d+$/.test(phone)) {
+    const patient = db.prepare("SELECT phone FROM patients WHERE name = ?").get(conversation.contact) as { phone: string } | undefined;
+    if (patient) phone = patient.phone;
+  }
+  conversation.phone = phone;
+
   const messages = db
     .prepare("SELECT id, role, content, tool_name, latency_ms, created_at FROM messages WHERE conversation_id = ? ORDER BY id")
     .all(id);

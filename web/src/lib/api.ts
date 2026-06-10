@@ -15,6 +15,7 @@ export interface ConversationSummary {
   id: number;
   channel: string;
   contact: string | null;
+  phone?: string | null;
   status: "aberta" | "resolvida" | "escalada";
   intent: string | null;
   csat: number | null;

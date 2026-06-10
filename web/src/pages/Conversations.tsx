@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessagesSquare, Wrench, ShieldAlert, CheckCheck } from "lucide-react";
+import { MessagesSquare, Wrench, ShieldAlert, CheckCheck, MessageCircle } from "lucide-react";
 import clsx from "clsx";
 import {
   api,
@@ -91,8 +91,9 @@ export function Conversations() {
                   <button
                     onClick={() => setSelected(c.id)}
                     className={clsx(
-                      "w-full px-4 py-3 text-left transition-colors hover:bg-stone-50",
-                      selected === c.id && "bg-brand-50/60"
+                      "w-full px-4 py-3 text-left transition-colors hover:bg-stone-50 border-l-4",
+                      selected === c.id ? "bg-brand-50/60" : "",
+                      c.status === "escalada" ? "border-l-amber-500 bg-amber-50/20" : "border-l-transparent"
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -125,23 +126,49 @@ export function Conversations() {
             <Spinner />
           ) : (
             <div className="flex h-[34rem] flex-col">
-              <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3.5">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-stone-800">
-                    {detail.conversation.contact ?? `Conversa #${detail.conversation.id}`}
-                  </span>
-                  <StatusBadge status={detail.conversation.status} />
-                </div>
-                {detail.conversation.status !== "resolvida" && (
-                  <button
-                    onClick={() => resolve(detail.conversation.id)}
-                    className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700"
-                  >
-                    <CheckCheck className="size-3.5" />
-                    Marcar resolvida
-                  </button>
-                )}
-              </div>
+              {(() => {
+                const rawPhone = detail.conversation.phone || "";
+                const cleanPhone = rawPhone.replace(/\D/g, "");
+                const formattedPhone = cleanPhone.length === 10 || cleanPhone.length === 11 
+                  ? `55${cleanPhone}` 
+                  : cleanPhone;
+
+                const whatsappText = `Olá! Sou a secretária da Dra. Daniela Morais. Vi que você conversou com a nossa assistente virtual Sofia. Vamos agendar a sua avaliação facial?`;
+                const waLink = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(whatsappText)}`;
+
+                return (
+                  <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-stone-800">
+                        {detail.conversation.contact ?? `Conversa #${detail.conversation.id}`}
+                      </span>
+                      <StatusBadge status={detail.conversation.status} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {detail.conversation.phone && (
+                        <a
+                          href={waLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-emerald-700"
+                        >
+                          <MessageCircle className="size-3.5" />
+                          Chamar no WhatsApp
+                        </a>
+                      )}
+                      {detail.conversation.status !== "resolvida" && (
+                        <button
+                          onClick={() => resolve(detail.conversation.id)}
+                          className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-700"
+                        >
+                          <CheckCheck className="size-3.5" />
+                          Marcar resolvida
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
                 {detail.messages.map((m) =>
