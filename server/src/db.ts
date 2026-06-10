@@ -75,7 +75,28 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS crm_interactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id),
+    type TEXT NOT NULL DEFAULT 'nota', -- nota | sistema | conversa
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);
+
+/** Migrações aditivas para bancos criados em versões anteriores. */
+function ensureColumn(table: string, column: string, ddl: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as unknown as { name: string }[];
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  }
+}
+
+ensureColumn("patients", "email", "email TEXT");
+ensureColumn("patients", "birth_date", "birth_date TEXT");
+ensureColumn("patients", "stage", "stage TEXT NOT NULL DEFAULT 'novo'");
+ensureColumn("patients", "notes", "notes TEXT");
 
 export function getSetting(key: string): string | null {
   const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key) as

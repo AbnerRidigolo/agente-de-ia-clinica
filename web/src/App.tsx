@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { Overview } from "./pages/Overview";
+import { Clients } from "./pages/Clients";
 import { Conversations } from "./pages/Conversations";
 import { Playground } from "./pages/Playground";
 import { Appointments } from "./pages/Appointments";
@@ -12,6 +13,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Overview />} />
+          <Route path="/clientes" element={<Clients />} />
           <Route path="/conversas" element={<Conversations />} />
           <Route path="/playground" element={<Playground />} />
           <Route path="/agenda" element={<Appointments />} />

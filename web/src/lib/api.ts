@@ -56,6 +56,37 @@ export interface Settings {
   mockMode: boolean;
 }
 
+export type CrmStage = "novo" | "lead" | "ativo" | "vip" | "inativo";
+
+export interface CrmClient {
+  id: number;
+  name: string;
+  phone: string;
+  email: string | null;
+  birth_date: string | null;
+  insurance: string | null;
+  stage: CrmStage;
+  notes: string | null;
+  created_at: string;
+  total_appointments: number;
+  next_appointment: string | null;
+  last_activity: string | null;
+}
+
+export interface CrmInteraction {
+  id: number;
+  type: "nota" | "sistema" | "conversa";
+  content: string;
+  created_at: string;
+}
+
+export interface CrmClientDetail {
+  client: CrmClient;
+  appointments: { id: number; specialty: string; professional: string; starts_at: string; status: string }[];
+  interactions: CrmInteraction[];
+  conversations: { id: number; status: string; intent: string | null; csat: number | null; updated_at: string }[];
+}
+
 export interface ChatResponse {
   conversationId: number;
   reply: string;
@@ -93,6 +124,23 @@ export const api = {
     request<ChatResponse>("/api/chat", {
       method: "POST",
       body: JSON.stringify({ message, conversationId }),
+    }),
+  crmClients: (search?: string, stage?: string) => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (stage) params.set("stage", stage);
+    const qs = params.toString();
+    return request<CrmClient[]>(`/api/crm/clients${qs ? `?${qs}` : ""}`);
+  },
+  crmClient: (id: number) => request<CrmClientDetail>(`/api/crm/clients/${id}`),
+  crmCreateClient: (data: Partial<CrmClient>) =>
+    request<{ id: number }>("/api/crm/clients", { method: "POST", body: JSON.stringify(data) }),
+  crmUpdateClient: (id: number, data: Partial<CrmClient>) =>
+    request<{ ok: boolean }>(`/api/crm/clients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  crmAddNote: (id: number, content: string) =>
+    request<{ ok: boolean }>(`/api/crm/clients/${id}/notes`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
     }),
   feedback: (conversationId: number, csat: number, resolved?: boolean) =>
     request<{ ok: boolean }>("/api/chat/feedback", {

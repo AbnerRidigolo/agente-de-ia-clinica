@@ -242,6 +242,12 @@ export function executeTool(
         "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (?, ?, ?, ?)"
       ).run(patient.id, slot.specialty, slot.professional, slot.starts_at);
 
+      // Alimenta o CRM: cliente vira "ativo" e ganha registro na linha do tempo
+      db.prepare("UPDATE patients SET stage = 'ativo' WHERE id = ? AND stage IN ('novo','lead','inativo')").run(patient.id);
+      db.prepare(
+        "INSERT INTO crm_interactions (patient_id, type, content) VALUES (?, 'sistema', ?)"
+      ).run(patient.id, `Consulta de ${slot.specialty} agendada pelo agente para ${slot.starts_at}`);
+
       return {
         intent: "agendamento",
         result: JSON.stringify({
@@ -258,12 +264,15 @@ export function executeTool(
     case "cancelar_consulta": {
       const id = Number(input.consulta_id);
       const appt = db
-        .prepare("SELECT id, status FROM appointments WHERE id = ?")
-        .get(id) as { id: number; status: string } | undefined;
+        .prepare("SELECT id, status, patient_id, specialty, starts_at FROM appointments WHERE id = ?")
+        .get(id) as { id: number; status: string; patient_id: number; specialty: string; starts_at: string } | undefined;
       if (!appt || appt.status !== "confirmada") {
         return { result: JSON.stringify({ sucesso: false, erro: "Consulta não encontrada ou já cancelada." }) };
       }
       db.prepare("UPDATE appointments SET status = 'cancelada' WHERE id = ?").run(id);
+      db.prepare(
+        "INSERT INTO crm_interactions (patient_id, type, content) VALUES (?, 'sistema', ?)"
+      ).run(appt.patient_id, `Consulta de ${appt.specialty} (${appt.starts_at}) cancelada pelo agente`);
       return { intent: "cancelamento", result: JSON.stringify({ sucesso: true }) };
     }
 

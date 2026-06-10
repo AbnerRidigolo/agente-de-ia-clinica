@@ -8,12 +8,14 @@ import {
   SlidersHorizontal,
   HeartPulse,
   Sparkles,
+  UsersRound,
 } from "lucide-react";
 import clsx from "clsx";
 import { api } from "../lib/api";
 
 const nav = [
   { to: "/", label: "Visão geral", icon: LayoutDashboard, end: true },
+  { to: "/clientes", label: "Clientes · CRM", icon: UsersRound },
   { to: "/conversas", label: "Conversas", icon: MessagesSquare },
   { to: "/playground", label: "Testar agente", icon: Bot },
   { to: "/agenda", label: "Agenda", icon: CalendarDays },

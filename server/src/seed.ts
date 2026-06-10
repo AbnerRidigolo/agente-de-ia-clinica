@@ -56,11 +56,25 @@ export function seedIfEmpty(): void {
   const insertKb = db.prepare("INSERT INTO knowledge_base (topic, content) VALUES (?, ?)");
   for (const [topic, content] of kb) insertKb.run(topic, content);
 
-  // Pacientes e histórico de conversas para o painel não nascer vazio
-  const insertPatient = db.prepare("INSERT INTO patients (name, phone, insurance) VALUES (?, ?, ?)");
-  insertPatient.run("Maria Oliveira", "11988887777", "Unimed");
-  insertPatient.run("João Pereira", "11977776666", "particular");
-  insertPatient.run("Fernanda Costa", "11966665555", "SulAmérica");
+  // Clientes (CRM) e histórico de conversas para o painel não nascer vazio
+  const insertPatient = db.prepare(
+    "INSERT INTO patients (name, phone, insurance, email, birth_date, stage, notes) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  );
+  insertPatient.run("Maria Oliveira", "11988887777", "Unimed", "maria.oliveira@email.com", "1985-03-12", "vip", "Cliente desde 2023. Prefere horários pela manhã.");
+  insertPatient.run("João Pereira", "11977776666", "particular", null, "1990-07-25", "ativo", null);
+  insertPatient.run("Fernanda Costa", "11966665555", "SulAmérica", "fe.costa@email.com", "1978-11-02", "ativo", "Caso de cobrança duplicada em aberto — acompanhar.");
+  insertPatient.run("Carlos Souza", "11955551111", "particular", null, null, "lead", "Pediu orçamento mas ainda não agendou.");
+  insertPatient.run("Beatriz Lima", "11944442222", "Amil", "bia.lima@email.com", "1995-01-30", "inativo", "Última visita há mais de 8 meses.");
+
+  const insertInteraction = db.prepare(
+    "INSERT INTO crm_interactions (patient_id, type, content, created_at) VALUES (?, ?, ?, datetime('now', ?))"
+  );
+  insertInteraction.run(1, "sistema", "Consulta de Cardiologia agendada pelo agente", "-1 days");
+  insertInteraction.run(1, "nota", "Cliente elogiou o atendimento da Sofia. Avaliar oferta do plano de acompanhamento anual.", "-1 days");
+  insertInteraction.run(3, "sistema", "Conversa escalada para humano: cobrança duplicada", "-2 days");
+  insertInteraction.run(3, "nota", "Financeiro confirmou estorno em até 5 dias úteis. Avisar a cliente quando cair.", "-1 days");
+  insertInteraction.run(4, "nota", "Ligou perguntando valores de Dermatologia. Enviar follow-up na sexta.", "-3 days");
+  insertInteraction.run(5, "nota", "Campanha de reativação: oferecer condição especial de retorno.", "-5 days");
 
   db.prepare(
     "INSERT INTO appointments (patient_id, specialty, professional, starts_at) VALUES (1, 'Cardiologia', 'Dr. Ricardo Lima', datetime('now', '+2 days', 'start of day', '+10 hours'))"
