@@ -60,6 +60,8 @@ db.exec(`
     content TEXT NOT NULL,
     tool_name TEXT,
     latency_ms INTEGER,
+    mode TEXT CHECK(mode IN ('llm', 'fallback')) DEFAULT 'llm',
+    intent TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 

@@ -7,6 +7,7 @@ import { toolDefinitions, executeTool } from "./tools.js";
 import { checkInput, checkOutput, maskPII } from "./guardrails.js";
 import { mockReply } from "./mock.js";
 import { runPreflightContext } from "./context.js";
+import { fallbackDecisionTree } from "./fallback.js";
 
 const client = config.mockMode
   ? null
@@ -58,11 +59,13 @@ function saveMessage(
   role: string,
   content: string,
   toolName: string | null = null,
-  latencyMs: number | null = null
+  latencyMs: number | null = null,
+  mode: "llm" | "fallback" = "llm",
+  intent: string | null = null
 ): void {
   db.prepare(
-    "INSERT INTO messages (conversation_id, role, content, tool_name, latency_ms) VALUES (?, ?, ?, ?, ?)"
-  ).run(conversationId, role, maskPII(content), toolName, latencyMs);
+    "INSERT INTO messages (conversation_id, role, content, tool_name, latency_ms, mode, intent) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  ).run(conversationId, role, maskPII(content), toolName, latencyMs, mode, intent);
   db.prepare("UPDATE conversations SET updated_at = datetime('now') WHERE id = ?").run(conversationId);
 }
 
@@ -134,61 +137,86 @@ export async function handleUserMessage(
     }
   }
 
-  for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
-    const response = await client!.chat.completions.create({
-      model: config.model,
-      max_tokens: config.maxTokens,
-      tools: toolDefinitions,
-      messages,
-    });
+  try {
+    for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      const response = await client!.chat.completions.create({
+        model: config.model,
+        max_tokens: config.maxTokens,
+        tools: toolDefinitions,
+        messages,
+      }, {
+        timeout: 20000 // 20 seconds timeout as requested
+      });
 
-    const choice = response.choices[0]?.message;
-    if (!choice) break;
+      const choice = response.choices[0]?.message;
+      if (!choice) break;
 
-    if (choice.tool_calls?.length) {
-      messages.push(choice);
+      if (choice.tool_calls?.length) {
+        messages.push(choice);
 
-      for (const toolCall of choice.tool_calls) {
-        if (toolCall.type !== "function") continue;
-        const name = toolCall.function.name;
-        let input: Record<string, unknown> = {};
-        try {
-          input = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
-        } catch {
-          input = {};
+        for (const toolCall of choice.tool_calls) {
+          if (toolCall.type !== "function") continue;
+          const name = toolCall.function.name;
+          let input: Record<string, unknown> = {};
+          try {
+            input = JSON.parse(toolCall.function.arguments || "{}") as Record<string, unknown>;
+          } catch {
+            input = {};
+          }
+
+          toolsUsed.push(name);
+          const outcome = executeTool(name, input, conversationId);
+          if (outcome.escalated) escalated = true;
+          if (outcome.intent) setIntent(conversationId, outcome.intent);
+          saveMessage(conversationId, "tool", outcome.result, name);
+          messages.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: outcome.result,
+          });
         }
-
-        toolsUsed.push(name);
-        const outcome = executeTool(name, input, conversationId);
-        if (outcome.escalated) escalated = true;
-        if (outcome.intent) setIntent(conversationId, outcome.intent);
-        saveMessage(conversationId, "tool", outcome.result, name);
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: outcome.result,
-        });
+        continue;
       }
-      continue;
+
+      finalText = (choice.content ?? "").trim();
+      break;
     }
 
-    finalText = (choice.content ?? "").trim();
-    break;
+    if (!finalText) {
+      throw new Error("Resposta vazia da OpenRouter");
+    }
+
+    // Camada determinística depois do modelo
+    const outputCheck = checkOutput(finalText, conversationId);
+    if (!outputCheck.allowed) finalText = outputCheck.cannedResponse!;
+
+    const latencyMs = Date.now() - started;
+    saveMessage(conversationId, "assistant", finalText, null, latencyMs, "llm");
+
+    return { conversationId, reply: finalText, escalated, toolsUsed, latencyMs, mock: false, mode: "llm" } as any;
+
+  } catch (err) {
+    console.error("[engine] Erro na OpenRouter, executando fallback local:", err);
+    
+    const fallbackResult = fallbackDecisionTree(userText, conversationId);
+    
+    if (fallbackResult.needs_handoff) {
+      db.prepare("UPDATE conversations SET status = 'escalada' WHERE id = ?").run(conversationId);
+      escalated = true;
+    }
+    
+    const latencyMs = Date.now() - started;
+    saveMessage(conversationId, "assistant", fallbackResult.reply, null, latencyMs, "fallback", fallbackResult.intent);
+    
+    return {
+      conversationId,
+      reply: fallbackResult.reply,
+      escalated,
+      toolsUsed,
+      latencyMs,
+      mock: false,
+      mode: "fallback",
+      intent: fallbackResult.intent
+    } as any;
   }
-
-  if (!finalText) {
-    finalText =
-      "Desculpe, tive um problema para concluir sua solicitação. Vou transferir você para um atendente humano.";
-    escalated = true;
-    db.prepare("UPDATE conversations SET status = 'escalada' WHERE id = ?").run(conversationId);
-  }
-
-  // Camada determinística depois do modelo
-  const outputCheck = checkOutput(finalText, conversationId);
-  if (!outputCheck.allowed) finalText = outputCheck.cannedResponse!;
-
-  const latencyMs = Date.now() - started;
-  saveMessage(conversationId, "assistant", finalText, null, latencyMs);
-
-  return { conversationId, reply: finalText, escalated, toolsUsed, latencyMs, mock: false };
 }
